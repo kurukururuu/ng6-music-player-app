@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Web Karaoke</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="icon" href="favicon.ico" />
+  </head>
+  <body>
+    <button
+      id="dark-mode-toggle"
+      style="position: fixed; top: 20px; right: 20px; z-index: 1000"
+    >
+      🌙 Dark Mode
+    </button>
+
+    <div id="session-setup">
+      <h1>Karaoke Room</h1>
+      <div id="username-container">
+        <label for="username-input">Your Name:</label>
+        <input
+          type="text"
+          id="username-input"
+          placeholder="Enter your name..."
+        />
+      </div>
+      <button id="create-btn" disabled>Create a New Session</button>
+      <hr />
+      <input type="text" id="room-id-input" placeholder="Enter Session ID" />
+      <button id="join-btn" disabled>Join Session</button>
+    </div>
+
+    <div id="karaoke-room" class="hidden">
+      <button
+        id="loadYoutubeManually"
+        style="position: fixed; bottom: 20px; right: 60px; z-index: 1000"
+      >
+        Click this button if YouTube doesn't load automatically
+      </button>
+      <h2>Session ID: <span id="session-id-display"></span></h2>
+      <div class="main-content">
+        <div class="player-container">
+          <div id="player"></div>
+
+          <div id="custom-progress-bar-container" class="hidden">
+            <div id="custom-progress-bar"></div>
+          </div>
+
+          <div id="listener-volume-controls" class="hidden">
+            <div class="volume-slider-container music">
+              <label for="youtube-volume-slider">Music Volume:</label>
+              <input
+                type="range"
+                id="youtube-volume-slider"
+                min="0"
+                max="100"
+                value="100"
+              />
+            </div>
+            <div class="volume-slider-container singer">
+              <label for="singer-volume-slider">Singer Volume:</label>
+              <input
+                type="range"
+                id="singer-volume-slider"
+                min="0"
+                max="1"
+                step="0.01"
+                value="1"
+              />
+            </div>
+          </div>
+
+          <div id="controls-container" class="hidden">
+            <button id="play-btn">Play</button>
+            <button id="pause-btn">Pause</button>
+            <button id="next-song-btn">Next Song</button>
+            <button id="start-singing-btn">Start Singing</button>
+            <button id="mute-btn" class="hidden">Mute</button>
+            <button id="calibrate-sync-btn" class="hidden">
+              Calibrate Sync
+            </button>
+          </div>
+
+          <div class="search-container">
+            <h3>Add a Song</h3>
+            <form id="search-form">
+              <input
+                type="text"
+                id="search-input"
+                placeholder="Search for a song on YouTube..."
+              />
+              <button type="submit">Search</button>
+            </form>
+            <div id="search-results"></div>
+          </div>
+        </div>
+        <div class="sidebar-container">
+          <div class="playlist-container">
+            <h3>Playlist</h3>
+            <div id="playlist"></div>
+          </div>
+          <div id="user-list-container">
+            <h3>Users Online</h3>
+            <ul id="user-list"></ul>
+          </div>
+          <div id="chat-container">
+            <h3>Chat</h3>
+            <div id="chat-messages"></div>
+            <div id="chat-input-container" style="position: relative">
+              <div
+                contenteditable="true"
+                id="chat-input"
+                data-placeholder="Type a message..."
+                role="textbox"
+                spellcheck="true"
+              ></div>
+              <div id="emoji-results"></div>
+              <button id="send-chat-btn">Send</button>
+              <emoji-picker
+                id="emoji-picker"
+                style="
+                  position: absolute;
+                  right: 20px;
+                  bottom: 60px;
+                  z-index: 2000;
+                  display: none;
+                "
+              ></emoji-picker>
+              <button id="emoji-btn" type="button" style="padding: 8px 10px">
+                😊
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="audio-streams-container"></div>
+    </div>
+
+    <div id="notification-popup" class="hidden">
+      <p id="notification-message"></p>
+    </div>
+
+    <script src="https://www.youtube.com/iframe_api"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"></script>
+    <script src="app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/emoji-mart@latest/dist/browser.js"></script>
+    <script type="module">
+      import emojiMartdata from 'https://cdn.jsdelivr.net/npm/@emoji-mart/data@1.2.1/+esm';
+      window.EmojiMart.data = emojiMartdata;
+    </script>
+    <script src="emoji-input.js" type="module"></script>
+  </body>
+</html>
