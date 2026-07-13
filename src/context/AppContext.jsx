@@ -4,6 +4,7 @@ import {
   useReducer,
   useEffect,
   useRef,
+  useState,
 } from 'react';
 
 // ---------------------------------------------------------------------------
@@ -110,15 +111,60 @@ function reducer(state, action) {
 // ---------------------------------------------------------------------------
 const AppContext = createContext(null);
 
+// ---------------------------------------------------------------------------
+// Session history helpers
+// ---------------------------------------------------------------------------
+const SESSIONS_KEY = 'karaokeSessions';
+const MAX_SAVED    = 5;
+
+function loadSavedSessions() {
+  try { return JSON.parse(localStorage.getItem(SESSIONS_KEY) ?? '[]'); } catch { return []; }
+}
+
+function persistSessions(list) {
+  try { localStorage.setItem(SESSIONS_KEY, JSON.stringify(list)); } catch {}
+}
+
 export function AppProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, undefined, getInitialState);
-  const socketRef = useRef(null);
+  const socketRef        = useRef(null);
+  const pendingRejoinRef = useRef(null); // roomId currently being re-joined
+
+  const [savedSessions, setSavedSessions] = useState(() =>
+    isClient ? loadSavedSessions() : []
+  );
+
+  // Persist session whenever the user successfully enters a room
+  useEffect(() => {
+    if (!state.roomId || !state.username) return;
+    setSavedSessions((prev) => {
+      const filtered = prev.filter((s) => s.roomId !== state.roomId);
+      const updated  = [
+        { roomId: state.roomId, username: state.username, lastSeenAt: Date.now() },
+        ...filtered,
+      ].slice(0, MAX_SAVED);
+      persistSessions(updated);
+      return updated;
+    });
+  }, [state.roomId]);
+
+  const removeSession = (roomId) => {
+    setSavedSessions((prev) => {
+      const updated = prev.filter((s) => s.roomId !== roomId);
+      persistSessions(updated);
+      return updated;
+    });
+  };
 
   // Apply theme to <html>
   useEffect(() => {
     document.documentElement.classList.toggle('dark', state.theme === 'dark');
     try { localStorage.setItem('karaokeTheme', state.theme); } catch {}
   }, [state.theme]);
+
+  // Keep a stable ref so socket callbacks can call removeSession
+  const removeSessionRef = useRef(removeSession);
+  useEffect(() => { removeSessionRef.current = removeSession; });
 
   // Socket setup — client only, lazy-loaded so SSR bundle is clean
   useEffect(() => {
@@ -134,7 +180,10 @@ export function AppProvider({ children }) {
       );
 
       socket.on('session-created',  (d) => dispatch({ type: 'SESSION_CREATED',  payload: d }));
-      socket.on('session-joined',   (d) => dispatch({ type: 'SESSION_JOINED',   payload: d }));
+      socket.on('session-joined',   (d) => {
+        pendingRejoinRef.current = null;
+        dispatch({ type: 'SESSION_JOINED', payload: d });
+      });
       socket.on('update-user-list', (d) => dispatch({ type: 'UPDATE_USERS',     payload: d }));
       socket.on('update-playlist',  (d) => dispatch({ type: 'UPDATE_PLAYLIST',  payload: d }));
       socket.on('search-results',   (d) => dispatch({ type: 'SEARCH_RESULTS',   payload: d }));
@@ -146,9 +195,14 @@ export function AppProvider({ children }) {
         dispatch({ type: 'YOU_ARE_NOW_ADMIN' });
         dispatch({ type: 'NOTIFICATION', payload: { message: 'You are now the room admin!', type: 'success' } });
       });
-      socket.on('error', (msg) =>
-        dispatch({ type: 'NOTIFICATION', payload: { message: msg, type: 'error' } })
-      );
+      socket.on('error', (msg) => {
+        // If error occurred during a rejoin attempt, remove that stale session
+        if (pendingRejoinRef.current) {
+          removeSessionRef.current(pendingRejoinRef.current);
+          pendingRejoinRef.current = null;
+        }
+        dispatch({ type: 'NOTIFICATION', payload: { message: msg, type: 'error' } });
+      });
 
       // Ping
       pingInterval = setInterval(() => {
@@ -190,6 +244,20 @@ export function AppProvider({ children }) {
     socketRef.current?.emit('join-session', { username: state.username, roomId: roomId.toUpperCase() });
   };
 
+  // Rejoin a previously-visited room. Uses saved username as fallback if the
+  // username field is currently blank.
+  const rejoinRoom = (roomId, savedUsername) => {
+    const uname = state.username.trim() || savedUsername;
+    if (!uname || !roomId) return;
+    // Ensure username state is up-to-date so the room receives the right name
+    if (!state.username.trim()) {
+      dispatch({ type: 'SET_USERNAME', payload: uname });
+      try { localStorage.setItem('karaokeUsername', uname); } catch {}
+    }
+    pendingRejoinRef.current = roomId;
+    socketRef.current?.emit('join-session', { username: uname, roomId: roomId.toUpperCase() });
+  };
+
   const searchSong     = (q)       => socketRef.current?.emit('search-song', q);
   const addSong        = (song)    => socketRef.current?.emit('add-song', { songData: song });
   const removeSong     = (index)   => socketRef.current?.emit('remove-song', { index });
@@ -228,6 +296,10 @@ export function AppProvider({ children }) {
       value={{
         ...state,
         socketRef,
+        // session history
+        savedSessions,
+        removeSession,
+        rejoinRoom,
         // actions
         setUsername,
         toggleTheme,
