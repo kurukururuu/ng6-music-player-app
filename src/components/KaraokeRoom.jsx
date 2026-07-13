@@ -20,10 +20,36 @@ export default function KaraokeRoom() {
   const [progress, setProgress]           = useState(0);
   const [currentDur, setCurrentDur]       = useState(0);
   const [isSearchOpen, setSearchOpen]     = useState(false);
+  const [chatHeight, setChatHeight]        = useState(224); // px, matches h-56
 
   const audioDelayMs     = useRef(200);
   const syncIntervalRef  = useRef(null);
   const progIntervalRef  = useRef(null);
+  const sidebarRef       = useRef(null);
+  const isDragging       = useRef(false);
+
+  const onDragStart = (e) => {
+    e.preventDefault();
+    isDragging.current = true;
+    const onMove = (ev) => {
+      if (!isDragging.current || !sidebarRef.current) return;
+      const rect = sidebarRef.current.getBoundingClientRect();
+      const clientY = ev.touches ? ev.touches[0].clientY : ev.clientY;
+      const fromBottom = rect.bottom - clientY;
+      setChatHeight(Math.min(Math.max(fromBottom, 80), rect.height - 80));
+    };
+    const onUp = () => {
+      isDragging.current = false;
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('touchend', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    window.addEventListener('touchmove', onMove);
+    window.addEventListener('touchend', onUp);
+  };
 
   // YouTube player
   const {
@@ -348,7 +374,7 @@ export default function KaraokeRoom() {
         </div>
 
         {/* ── Right sidebar ───────────────────────────────────────── */}
-        <aside className="
+        <aside ref={sidebarRef} className="
           w-72 flex-none flex flex-col overflow-hidden
           border-l border-slate-200 dark:border-slate-800
           bg-white dark:bg-slate-900
@@ -383,7 +409,20 @@ export default function KaraokeRoom() {
           <div className="flex-1 overflow-hidden flex flex-col border-t border-slate-200 dark:border-slate-800">
             <Playlist />
           </div>
-          <div className="flex-none h-56 border-t border-slate-200 dark:border-slate-800">
+          {/* ── Resize handle ──────────────────────────────────── */}
+          <div
+            onMouseDown={onDragStart}
+            onTouchStart={onDragStart}
+            className="flex-none h-1.5 cursor-row-resize flex items-center justify-center group
+              border-t border-slate-200 dark:border-slate-800
+              hover:bg-primary-500/20 active:bg-primary-500/40 transition-colors"
+          >
+            <span className="w-8 h-0.5 rounded-full bg-slate-300 dark:bg-slate-600 group-hover:bg-primary-400 transition-colors" />
+          </div>
+          <div
+            className="flex-none overflow-hidden border-t border-slate-200 dark:border-slate-800"
+            style={{ height: chatHeight }}
+          >
             <Chat />
           </div>
         </aside>
