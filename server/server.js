@@ -333,5 +333,5 @@ if (!isProd) {
 }
 
 httpServer.listen(PORT, '0.0.0.0', () => {
-  console.log(`\n🎤 rokeroke v2  →  http://localhost:${PORT}\n`);
+  console.log(`\n🎤 ngorok v2  →  http://localhost:${PORT}\n`);
 });

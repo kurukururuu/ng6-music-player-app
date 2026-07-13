@@ -23,7 +23,7 @@ export default function SessionSetup() {
         <div className="text-center mb-7">
           <div className="text-5xl mb-2">🎤</div>
           <h1 className="text-3xl font-extrabold tracking-tight text-primary-600 dark:text-primary-400">
-            rokeroke
+            ngorok
           </h1>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
             Real-time karaoke with friends
