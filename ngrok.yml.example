@@ -1,0 +1,4 @@
+# Copy this to ngrok.yml (gitignored) if you want a local ngrok config file.
+# Do NOT put a real authtoken in ngrok.yml — see ngrok.yml's own comment for
+# the two supported ways to authenticate without committing a secret.
+agent: {}

@@ -27,3 +27,17 @@ dist-ssr
 .env
 .env.local
 .env.*.local
+
+# Local ngrok agent config — may contain a personal authtoken, never commit
+ngrok.yml
+
+# Local, machine-specific agent configuration — never commit
+.claude/settings.local.json
+CLAUDE.local.md
+.github/copilot/settings.local.json
+
+# Volatile deep-scan working state — deleting it loses nothing curated
+.sdd-scan/
+
+# Volatile template-update working state — deleting it loses nothing curated
+.sdd-update/
